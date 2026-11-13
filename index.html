@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#172b4d">
+<meta name="description" content="Pencatatan pemasukan dan pengeluaran pribadi secara sederhana.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Buku Kas Pribadi</title>
+<style>
+:root{color-scheme:light;--bg:#f4f6f8;--card:#fff;--text:#18212f;--muted:#697586;--line:#e5e9ef;--green:#138a5b;--red:#d34b4b;--blue:#315fce}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{background:#172b4d;color:white;padding:24px 18px}header .wrap,main{max-width:1050px;margin:auto}h1{margin:0 0 4px;font-size:24px}header p{margin:0;color:#d7e0ef}
+main{padding:20px 16px 48px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.card,.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 2px 8px #14213d08}
+.metric-label{color:var(--muted);font-size:13px}.metric{font-size:clamp(18px,3vw,25px);font-weight:750;margin-top:5px;overflow-wrap:anywhere}.income{color:var(--green)}.expense{color:var(--red)}
+.layout{display:grid;grid-template-columns: minmax(270px, .85fr) minmax(0,1.5fr);gap:14px;align-items:start}
+h2{font-size:17px;margin:0 0 14px}.field{margin-bottom:11px}label{display:block;font-size:13px;font-weight:650;margin-bottom:5px}
+input,select,button{font:inherit}input,select{width:100%;padding:10px 11px;border:1px solid #cfd6df;border-radius:9px;background:white;color:var(--text)}
+input:focus,select:focus{outline:2px solid #b9cbff;border-color:var(--blue)}
+button{border:0;border-radius:9px;padding:10px 13px;cursor:pointer;font-weight:650}.primary{background:var(--blue);color:white;width:100%}.secondary{background:#edf1f7;color:#27364d}.danger{background:#fff0f0;color:#b52f2f}.actions{display:flex;gap:8px;flex-wrap:wrap}
+.toolbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;min-width:590px}th,td{text-align:left;padding:11px 9px;border-bottom:1px solid var(--line);font-size:13px}th{color:var(--muted);font-weight:650;background:#fafbfc}td.num{text-align:right;white-space:nowrap}.empty{text-align:center;color:var(--muted);padding:28px 10px}
+.small{font-size:12px;color:var(--muted)}.topline{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px}.pill{font-size:12px;border-radius:30px;padding:3px 8px;background:#eef2f8}
+footer{max-width:1050px;margin:0 auto;padding:0 16px 28px;color:var(--muted);font-size:12px}
+@media(max-width:760px){.layout{grid-template-columns:1fr}.cards{grid-template-columns:1fr}.metric{font-size:21px}.toolbar{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>Buku Kas Pribadi</h1><p>Catat pemasukan, pengeluaran, dan pantau saldo dalam satu tempat.</p></div></header>
+<main>
+  <section class="cards">
+    <div class="card"><div class="metric-label">Saldo saat ini</div><div class="metric" id="balance">Rp0</div></div>
+    <div class="card"><div class="metric-label">Total pemasukan (sesuai filter)</div><div class="metric income" id="income">Rp0</div></div>
+    <div class="card"><div class="metric-label">Total pengeluaran (sesuai filter)</div><div class="metric expense" id="expense">Rp0</div></div>
+  </section>
+  <div class="layout">
+    <section class="panel">
+      <h2 id="formTitle">Tambah transaksi</h2>
+      <form id="txForm">
+        <div class="field"><label for="date">Tanggal</label><input id="date" type="date" required></div>
+        <div class="field"><label for="type">Jenis transaksi</label><select id="type"><option value="masuk">Uang masuk</option><option value="keluar">Uang keluar</option></select></div>
+        <div class="field"><label for="amount">Nominal (Rp)</label><input id="amount" type="number" min="1" step="1" placeholder="Contoh: 50000" required></div>
+        <div class="field"><label for="category">Kategori</label><select id="category"></select></div>
+        <div class="field"><label for="note">Keterangan</label><input id="note" maxlength="100" placeholder="Contoh: Gaji, makan, transportasi" required></div>
+        <div class="actions"><button class="primary" id="saveBtn" type="submit">Simpan transaksi</button><button class="secondary" id="cancelEdit" type="button" hidden>Batal</button></div>
+      </form>
+      <p class="small">Data disimpan di browser/perangkat ini. Tidak perlu akun atau koneksi internet setelah halaman dibuka.</p>
+    </section>
+    <section class="panel">
+      <div class="topline"><h2 style="margin:0">Riwayat transaksi</h2><span class="pill" id="count">0 transaksi</span></div>
+      <div class="toolbar">
+        <div><label for="month">Filter bulan</label><input type="month" id="month"></div>
+        <div><label for="filterType">Jenis</label><select id="filterType"><option value="semua">Semua transaksi</option><option value="masuk">Uang masuk</option><option value="keluar">Uang keluar</option></select></div>
+      </div>
+      <div class="actions" style="margin-bottom:12px"><button class="secondary" id="exportBtn" type="button">Unduh CSV</button><button class="secondary" id="allBtn" type="button">Tampilkan semua</button></div>
+      <div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Keterangan</th><th>Kategori</th><th>Jenis</th><th style="text-align:right">Nominal</th><th>Aksi</th></tr></thead><tbody id="rows"></tbody></table><div class="empty" id="empty">Belum ada transaksi. Tambahkan transaksi pertama.</div></div>
+    </section>
+  </div>
+</main>
+<footer>Tips: unduh CSV secara berkala sebagai cadangan. Menghapus data browser atau mengganti perangkat dapat menghilangkan data yang tersimpan lokal.</footer>
+<script>
+const $=id=>document.getElementById(id);
+const categories={masuk:["Gaji","Uang saku","Bonus","Hadiah","Penjualan","Lainnya"],keluar:["Makanan","Transportasi","Belanja","Tagihan","Pendidikan","Kesehatan","Hiburan","Tabungan/Investasi","Lainnya"]};
+const KEY="bukuKasPribadi_v1";let transactions=[];let editingId=null;
+const rupiah=n=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n||0);
+const today=()=>new Date().toLocaleDateString("en-CA");
+function load(){try{transactions=JSON.parse(localStorage.getItem(KEY)||"[]");if(!Array.isArray(transactions))transactions=[]}catch{transactions=[]}}
+function persist(){localStorage.setItem(KEY,JSON.stringify(transactions))}
+function updateCategories(selected){const type=$("type").value;$("category").innerHTML=categories[type].map(c=>`<option>${c}</option>`).join("");if(selected&&categories[type].includes(selected))$("category").value=selected}
+function filtered(){const m=$("month").value,t=$("filterType").value;return transactions.filter(x=>(!m||x.date.startsWith(m))&&(t==="semua"||x.type===t)).sort((a,b)=>b.date.localeCompare(a.date)||b.created-b.created)}
+function render(){
+ const list=filtered(),inc=list.filter(x=>x.type==="masuk").reduce((s,x)=>s+x.amount,0),out=list.filter(x=>x.type==="keluar").reduce((s,x)=>s+x.amount,0);
+ const balance=transactions.reduce((s,x)=>s+(x.type==="masuk"?x.amount:-x.amount),0);
+ $("balance").textContent=rupiah(balance);$("income").textContent=rupiah(inc);$("expense").textContent=rupiah(out);$("count").textContent=list.length+" transaksi";
+ $("rows").innerHTML=list.map(x=>`<tr><td>${escapeHtml(x.date)}</td><td>${escapeHtml(x.note)}</td><td>${escapeHtml(x.category)}</td><td><span class="pill">${x.type==="masuk"?"Masuk":"Keluar"}</span></td><td class="num ${x.type==="masuk"?"income":"expense"}">${x.type==="masuk"?"+":"−"} ${rupiah(x.amount)}</td><td><div class="actions"><button class="secondary" data-edit="${x.id}" type="button">Edit</button><button class="danger" data-delete="${x.id}" type="button">Hapus</button></div></td></tr>`).join("");
+ $("empty").style.display=list.length?"none":"block";
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+$("type").addEventListener("change",()=>updateCategories());
+$("txForm").addEventListener("submit",e=>{e.preventDefault();const amount=Number($("amount").value);if(!Number.isSafeInteger(amount)||amount<=0){alert("Masukkan nominal rupiah berupa bilangan bulat lebih dari 0.");return}
+ const item={id:editingId||String(Date.now())+Math.random().toString(16).slice(2),date:$("date").value,type:$("type").value,amount,category:$("category").value,note:$("note").value.trim(),created:Date.now()};
+ if(!item.note)return;if(editingId){transactions=transactions.map(x=>x.id===editingId?{...item,created:transactions.find(x=>x.id===editingId).created}:x)}else transactions.push(item);
+ persist();resetForm();render();
+});
+function resetForm(){$("txForm").reset();$("date").value=today();editingId=null;$("formTitle").textContent="Tambah transaksi";$("saveBtn").textContent="Simpan transaksi";$("cancelEdit").hidden=true;updateCategories()}
+$("cancelEdit").addEventListener("click",resetForm);
+$("rows").addEventListener("click",e=>{const edit=e.target.dataset.edit,del=e.target.dataset.delete;if(edit){const x=transactions.find(t=>t.id===edit);if(!x)return;editingId=x.id;$("date").value=x.date;$("type").value=x.type;updateCategories(x.category);$("amount").value=x.amount;$("note").value=x.note;$("formTitle").textContent="Edit transaksi";$("saveBtn").textContent="Simpan perubahan";$("cancelEdit").hidden=false;window.scrollTo({top:0,behavior:"smooth"})}
+ if(del){const x=transactions.find(t=>t.id===del);if(x&&confirm(`Hapus transaksi "${x.note}"?`)){transactions=transactions.filter(t=>t.id!==del);persist();if(editingId===del)resetForm();render()}}});
+$("month").addEventListener("change",render);$("filterType").addEventListener("change",render);
+$("allBtn").addEventListener("click",()=>{$("month").value="";$("filterType").value="semua";render()});
+$("exportBtn").addEventListener("click",()=>{const data=filtered();if(!data.length){alert("Tidak ada transaksi untuk diekspor.");return}
+ const q=v=>'"'+String(v).replace(/"/g,'""')+'"';const lines=[["Tanggal","Jenis","Kategori","Keterangan","Nominal (Rp)"],...data.map(x=>[x.date,x.type,x.category,x.note,x.amount])].map(r=>r.map(q).join(",")).join("\r\n");
+ const blob=new Blob(["\uFEFF"+lines],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="buku-kas-pribadi.csv";a.click();URL.revokeObjectURL(url)});
+load();$("date").value=today();updateCategories();render();
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(err => console.warn("Service worker gagal didaftarkan:", err));
+  });
+}
+</script>
+</body></html>

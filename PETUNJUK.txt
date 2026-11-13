@@ -1,0 +1,1 @@
+Ekstrak ZIP ini. Unggah semua 6 file (termasuk .nojekyll) ke root repository. Pastikan index.html langsung terlihat di halaman utama repository, bukan di dalam subfolder. Lalu buka Settings > Pages > Deploy from a branch > Branch: main > Folder: /(root) > Save.
